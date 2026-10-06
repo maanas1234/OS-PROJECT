@@ -1,0 +1,14 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "command-proposal",
+  "type": "object",
+  "required": ["intent", "command", "explanation", "risk", "requires_confirm"],
+  "properties": {
+    "intent": { "type": "string" },
+    "command": { "type": "string" },
+    "explanation": { "type": "string" },
+    "risk": { "enum": ["low", "med", "high"] },
+    "requires_confirm": { "type": "boolean" }
+  },
+  "additionalProperties": false
+}

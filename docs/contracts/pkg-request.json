@@ -1,0 +1,11 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "pkg-request",
+  "type": "object",
+  "required": ["action", "packages"],
+  "properties": {
+    "action": { "enum": ["install", "remove", "search"] },
+    "packages": { "type": "array", "items": { "type": "string" } }
+  },
+  "additionalProperties": false
+}

@@ -1,0 +1,24 @@
+# secrets
+.env
+*.key
+
+# build output
+*.iso
+build/
+chroot/
+binary/
+cache/
+
+# rust
+target/
+
+# python
+__pycache__/
+*.pyc
+.venv/
+
+# editors / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db

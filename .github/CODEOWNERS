@@ -1,0 +1,10 @@
+# Owners are auto-requested for review on PRs touching their folders.
+# Replace @UTPAL_GITHUB with Utpal's real GitHub username.
+
+*                    @maanas1234
+/image/              @UTPAL_GITHUB
+/pkg/                @UTPAL_GITHUB
+/daemon/             @UTPAL_GITHUB
+/shell/              @maanas1234
+/ai/                 @maanas1234
+/docs/contracts/     @maanas1234 @UTPAL_GITHUB

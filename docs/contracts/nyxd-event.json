@@ -1,0 +1,14 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "nyxd-event",
+  "type": "object",
+  "required": ["ts", "source", "severity", "message"],
+  "properties": {
+    "ts": { "type": "string", "format": "date-time" },
+    "source": { "type": "string", "description": "Originating unit or log source, e.g. systemd unit name" },
+    "severity": { "enum": ["info", "warning", "error", "critical"] },
+    "message": { "type": "string" },
+    "suggested_action": { "type": "string" }
+  },
+  "additionalProperties": false
+}
