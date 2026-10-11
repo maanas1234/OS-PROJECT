@@ -22,3 +22,6 @@ __pycache__/
 .idea/
 .DS_Store
 Thumbs.db
+__pycache__/
+.pytest_cache/
+*.egg-info/
