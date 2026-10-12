@@ -1,8 +1,9 @@
-"""nyx CLI.  nyx "list big files"   |   nyx --dry-run "..."   |   nyx why -- <cmd>"""
+"""nyx CLI.  nyx "list big files"  |  nyx --dry-run "..."  |  nyx why -- <cmd>  |  nyx alerts"""
 import argparse
 import subprocess
 import sys
 
+from .alerts import AlertsError, format_event, stream_events
 from .safety import assess
 from .translate import TranslateError, translate
 
@@ -61,6 +62,20 @@ def run_why(cmd: list, backend=None) -> int:
     return result.returncode
 
 
+def run_alerts() -> int:
+    """Print nyxd events as they arrive. Ctrl-C to stop."""
+    try:
+        for event in stream_events():
+            print(format_event(event), flush=True)
+    except AlertsError as e:
+        print(f"nyx: {e}", file=sys.stderr)
+        return 2
+    except KeyboardInterrupt:
+        return 0
+    print("nyx: nyxd closed the connection", file=sys.stderr)
+    return 1
+
+
 def main(argv=None) -> int:
     argv = sys.argv[1:] if argv is None else argv
     if argv and argv[0] == "why":
@@ -69,6 +84,8 @@ def main(argv=None) -> int:
             print("usage: nyx why -- <command>", file=sys.stderr)
             return 2
         return run_why(cmd)
+    if argv == ["alerts"]:
+        return run_alerts()
     p = argparse.ArgumentParser(prog="nyx", description="AI-first shell helper")
     p.add_argument("intent", nargs="+", help="what you want, in plain English")
     p.add_argument("--dry-run", action="store_true", help="show the command, do not run")

@@ -34,6 +34,7 @@ HIGH = [
 MED = [
     (r"\bsudo\b", "runs as root"),
     (r"\b(shutdown|reboot|poweroff|halt)\b", "stops the machine"),
+    (r"\bnyx-pkg\s+(install|remove)\b", "changes packages"),
     (r"\bsystemctl\s+(stop|disable|mask|restart)\b", "changes a service"),
     (r"\b(apt|apt-get|dpkg)\s+(-\w+\s+)*(install|remove|purge|upgrade|dist-upgrade)\b", "changes packages"),
     (r"\bkill(all)?\b|\bpkill\b", "kills processes"),
