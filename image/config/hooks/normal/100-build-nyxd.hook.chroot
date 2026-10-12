@@ -5,10 +5,13 @@ apt-get update
 DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
     build-essential cargo rustc
 
+# live-build's UEFI helper resets PATH without /usr/sbin.
+ln -sf /usr/bin/mkfs.msdos /usr/sbin/mkfs.msdos
+
 if grep -q '^DSHELL=' /etc/adduser.conf; then
-    sed -i 's|^DSHELL=.*|DSHELL=/usr/bin/nu|' /etc/adduser.conf
+    sed -i 's|^DSHELL=.*|DSHELL=/usr/local/bin/nu|' /etc/adduser.conf
 else
-    printf '\nDSHELL=/usr/bin/nu\n' >> /etc/adduser.conf
+    printf '\nDSHELL=/usr/local/bin/nu\n' >> /etc/adduser.conf
 fi
 
 cargo build --release --manifest-path /usr/local/src/nyxd/Cargo.toml
