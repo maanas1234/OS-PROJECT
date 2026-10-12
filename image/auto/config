@@ -6,8 +6,14 @@ lb config noauto \
     --distribution noble \
     --architectures amd64 \
     --archive-areas "main universe restricted multiverse" \
+    --mirror-bootstrap http://archive.ubuntu.com/ubuntu/ \
+    --mirror-chroot http://archive.ubuntu.com/ubuntu/ \
+    --mirror-chroot-security http://security.ubuntu.com/ubuntu/ \
+    --mirror-binary http://archive.ubuntu.com/ubuntu/ \
+    --mirror-binary-security http://security.ubuntu.com/ubuntu/ \
+    --keyring-packages ubuntu-keyring \
     --binary-images iso-hybrid \
-    --debian-installer false \
+    --debian-installer none \
     --bootappend-live "boot=casper quiet" \
     --iso-application "NyxOS" \
     --iso-volume "NYXOS"
