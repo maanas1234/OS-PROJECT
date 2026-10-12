@@ -162,3 +162,16 @@ def test_stream_events_from_fake_daemon(tmp_path):
     threading.Thread(target=serve, daemon=True).start()
     assert list(stream_events(path)) == [EVENT]
     srv.close()
+
+
+def test_bad_first_reply_is_retried(monkeypatch):
+    replies = iter(["I think we should\n/Safety/Risk:** read-only", '{"command": "df -h", "explanation": "e", "risk": "low"}'])
+    monkeypatch.setattr(tr, "_backends", lambda: [("local", lambda text: next(replies))])
+    assert tr.translate("disk free").command == "df -h"
+
+
+def test_local_key_sent_as_bearer(monkeypatch):
+    seen = {}
+    monkeypatch.setattr(tr, "_post", lambda url, headers, body, timeout, who: seen.update(h=headers) or {"choices": [{"message": {"content": "{}"}}]})
+    tr.call_local("x", "http://h/v1", "auto", api_key="k")
+    assert seen["h"] == {"authorization": "Bearer k"}

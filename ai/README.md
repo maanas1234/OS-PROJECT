@@ -23,7 +23,7 @@ Exit codes: 0 ok, 1 cancelled, 2 translate error, 3 refused by safety gate.
 ## Backends
 
 `NYX_BACKEND=auto` (default): Claude if `ANTHROPIC_API_KEY` set, falls back to a local model when the cloud is unreachable.
-`cloud` or `local` force one. Local = any OpenAI-compatible server: `llama-server` (default `http://127.0.0.1:8080/v1`) or Ollama (`NYX_LOCAL_URL=http://127.0.0.1:11434/v1`, `NYX_LOCAL_MODEL=<tag>`).
+`cloud` or `local` force one. Local = any OpenAI-compatible server: `llama-server` (default `http://127.0.0.1:8080/v1`) or Ollama (`NYX_LOCAL_URL=http://127.0.0.1:11434/v1`, `NYX_LOCAL_MODEL=<tag>`, optional `NYX_LOCAL_KEY` for servers that need a bearer token).
 Local output goes through the same safety gate.
 
 ## Modules

@@ -10,7 +10,7 @@ import platform
 import urllib.error
 import urllib.request
 
-from .proposal import Proposal, from_model_reply
+from .proposal import Proposal, ProposalError, from_model_reply
 
 API_URL = "https://api.anthropic.com/v1/messages"
 DEFAULT_MODEL = "claude-sonnet-5-5"
@@ -18,13 +18,13 @@ DEFAULT_LOCAL_URL = "http://127.0.0.1:8080/v1"  # llama-server; Ollama is http:/
 
 SYSTEM = """You translate a user's intent into ONE shell command for Ubuntu Linux (bash/nushell host, GNU coreutils).
 Reply with ONLY a JSON object, no prose, no code fences:
-{"command": "<single command or pipeline>", "explanation": "<one short sentence>", "risk": "low|med|high"}
+{"command": "du -ah . | sort -rh | head -20", "explanation": "Lists the 20 biggest files.", "risk": "low"}
 Rules:
 - Prefer read-only commands. Never add sudo unless the task needs root.
 - To install, remove, or search packages, do NOT write apt commands. Reply instead with:
-  {"pkg_request": {"action": "install|remove|search", "packages": ["name"]}, "explanation": "<one short sentence>", "risk": "med"}
-  Use exact Ubuntu package names. For search, packages holds the search terms.
-- If the intent is impossible or unsafe to express as a command, reply with {"command": "echo 'cannot do that safely'", "explanation": "<why>", "risk": "low"}.
+  {"pkg_request": {"action": "install", "packages": ["htop"]}, "explanation": "Installs htop.", "risk": "med"}
+  action must be exactly one of: install, remove, search. Use exact Ubuntu package names. For search, packages holds the search terms.
+- If the intent is impossible or unsafe to express as a command, reply with {"command": "echo 'cannot do that safely'", "explanation": "Why it is unsafe.", "risk": "low"}.
 - risk: low = read-only, med = changes files/services/packages, high = destructive or irreversible."""
 
 
@@ -64,13 +64,13 @@ def call_claude(intent: str, api_key: str, model: str = DEFAULT_MODEL, timeout: 
     return "".join(b.get("text", "") for b in payload.get("content", []) if b.get("type") == "text")
 
 
-def call_local(intent: str, base_url: str, model: str = "local", timeout: int = 120) -> str:
+def call_local(intent: str, base_url: str, model: str = "local", timeout: int = 120, api_key: str = None) -> str:
     payload = _post(
         base_url.rstrip("/") + "/chat/completions",
-        {},
+        {"authorization": f"Bearer {api_key}"} if api_key else {},
         {
             "model": model,
-            "max_tokens": 300,
+            "max_tokens": 1500,
             "temperature": 0,
             "messages": [{"role": "system", "content": SYSTEM}, {"role": "user", "content": _user_message(intent)}],
         },
@@ -91,7 +91,8 @@ def _backends() -> list:
     local = (
         "local",
         lambda text: call_local(
-            text, os.environ.get("NYX_LOCAL_URL", DEFAULT_LOCAL_URL), os.environ.get("NYX_LOCAL_MODEL", "local")
+            text, os.environ.get("NYX_LOCAL_URL", DEFAULT_LOCAL_URL), os.environ.get("NYX_LOCAL_MODEL", "local"),
+            api_key=os.environ.get("NYX_LOCAL_KEY"),
         ),
     )
     if mode == "local":
@@ -110,7 +111,10 @@ def translate(intent: str, backend=None) -> Proposal:
     errors = []
     for name, call in _backends():
         try:
-            return from_model_reply(intent, call(intent))
-        except TranslateError as e:  # unreachable / HTTP error: try next backend
+            try:
+                return from_model_reply(intent, call(intent))
+            except ProposalError:  # model rambled or broke format: one retry
+                return from_model_reply(intent, call(intent))
+        except (TranslateError, ProposalError) as e:  # unreachable / bad reply: try next backend
             errors.append(f"{name}: {e}")
     raise TranslateError("; ".join(errors))
