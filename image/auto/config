@@ -11,7 +11,16 @@ lb config noauto \
     --mirror-chroot-security http://security.ubuntu.com/ubuntu/ \
     --mirror-binary http://archive.ubuntu.com/ubuntu/ \
     --mirror-binary-security http://security.ubuntu.com/ubuntu/ \
+    --parent-mirror-bootstrap http://archive.ubuntu.com/ubuntu/ \
+    --parent-mirror-chroot http://archive.ubuntu.com/ubuntu/ \
+    --parent-mirror-chroot-security http://security.ubuntu.com/ubuntu/ \
+    --parent-mirror-binary http://archive.ubuntu.com/ubuntu/ \
+    --parent-mirror-binary-security http://security.ubuntu.com/ubuntu/ \
     --keyring-packages ubuntu-keyring \
+    --cache true \
+    --cache-packages true \
+    --cache-indices false \
+    --cache-stages bootstrap \
     --binary-images iso-hybrid \
     --debian-installer none \
     --bootappend-live "boot=casper quiet" \

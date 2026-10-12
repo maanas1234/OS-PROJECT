@@ -16,10 +16,16 @@ From the repository root, run:
 sudo ./image/build.sh
 ```
 
-The script stages the current package wrapper and daemon source into a temporary
-build context, runs the image build, then writes `image/build/nyxos-amd64.iso`.
-Rust build tools are installed temporarily inside the image build chroot and
-removed after compiling `nyxd`.
+The script stages the current package wrapper and daemon source into
+`image/.build-work`, runs the image build, then writes
+`image/build/nyxos-amd64.iso`. It reuses live-build's bootstrap and downloaded
+package caches across runs while clearing the old chroot and ISO output before
+each build. Package indexes are refreshed each time. Rust build tools are
+installed temporarily inside the image build chroot and removed after
+compiling `nyxd`.
+
+To discard the saved cache and start over, run
+`sudo lb clean --purge` from `image/.build-work`.
 
 The image is a live system, not an installer for a persistent disk install. It
 is configured to autologin the ephemeral `ubuntu` account on the local and

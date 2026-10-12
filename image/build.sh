@@ -13,12 +13,18 @@ if ! command -v lb >/dev/null 2>&1; then
     exit 1
 fi
 
-WORK_DIR=$(mktemp -d "${TMPDIR:-/tmp}/nyxos-build.XXXXXX")
-cleanup() {
-    rm -rf "$WORK_DIR"
-}
-trap cleanup EXIT
-trap 'exit 1' HUP INT TERM
+WORK_DIR="$IMAGE_DIR/.build-work"
+mkdir -p "$WORK_DIR"
+
+# Keep live-build's package and bootstrap caches between runs, but discard
+# generated chroot/output state so updated project files are always applied.
+if [ -d "$WORK_DIR/config" ]; then
+    (
+        cd "$WORK_DIR"
+        lb clean --stage --chroot --binary
+    )
+fi
+rm -rf "$WORK_DIR/config"
 
 cp -a "$IMAGE_DIR/config" "$WORK_DIR/config"
 mkdir -p "$WORK_DIR/config/includes.chroot/usr/local/src/nyxd"
