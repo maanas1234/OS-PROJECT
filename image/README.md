@@ -1,5 +1,27 @@
-# image/ (Owner: Utpal)
+# NyxOS image (Owner: Utpal)
 
-Ubuntu ISO build with `live-build`. Boots to shell, no desktop, nushell preinstalled.
+This directory builds an experimental Ubuntu 24.04 (Noble) amd64 live ISO with
+`live-build`. It uses the Ubuntu archive, boots through Casper to a shell, and
+installs Nushell, `nyx-pkg`, and the `nyxd` system service.
 
-Milestone: M1. Boots in QEMU, `nu` launches.
+## Build
+
+On an Ubuntu or Debian amd64 build host, install `live-build`, `debootstrap`,
+`xorriso`, `squashfs-tools`, `isolinux`, `syslinux-common`, `syslinux-utils`,
+`grub-pc-bin`, `grub-efi-amd64-bin`, `mtools`, and `dosfstools`. The build must
+run as root and needs network access to Ubuntu package archives and crates.io.
+From the repository root, run:
+
+```sh
+sudo ./image/build.sh
+```
+
+The script stages the current package wrapper and daemon source into a temporary
+build context, runs the image build, then writes `image/build/nyxos-amd64.iso`.
+Rust build tools are installed temporarily inside the image build chroot and
+removed after compiling `nyxd`.
+
+The image is a live system, not an installer for a persistent disk install. It
+is configured to autologin the ephemeral `ubuntu` account on the local and
+serial consoles. Review boot behavior in QEMU before treating it as ready for
+hardware. The ISO build has not yet been validated in this repository.

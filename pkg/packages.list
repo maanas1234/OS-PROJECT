@@ -1,0 +1,4 @@
+# Core packages intended for the minimal NyxOS image
+nushell
+ca-certificates
+curl

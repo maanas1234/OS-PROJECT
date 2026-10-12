@@ -1,0 +1,16 @@
+[Unit]
+Description=NyxOS journal event daemon
+After=systemd-journald.service
+Wants=systemd-journald.service
+
+[Service]
+Type=simple
+ExecStart=/usr/local/sbin/nyxd
+Restart=on-failure
+RestartSec=2s
+User=root
+Group=adm
+UMask=0007
+
+[Install]
+WantedBy=multi-user.target
