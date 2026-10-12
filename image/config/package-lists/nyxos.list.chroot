@@ -1,0 +1,7 @@
+casper
+systemd-sysv
+nushell
+python3
+sudo
+ca-certificates
+curl

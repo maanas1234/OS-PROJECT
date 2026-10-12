@@ -1,0 +1,24 @@
+#!/bin/sh
+set -eu
+
+apt-get update
+DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+    build-essential cargo rustc
+
+if grep -q '^DSHELL=' /etc/adduser.conf; then
+    sed -i 's|^DSHELL=.*|DSHELL=/usr/bin/nu|' /etc/adduser.conf
+else
+    printf '\nDSHELL=/usr/bin/nu\n' >> /etc/adduser.conf
+fi
+
+cargo build --release --manifest-path /usr/local/src/nyxd/Cargo.toml
+install -o root -g root -m 0755 \
+    /usr/local/src/nyxd/target/release/nyxd /usr/local/sbin/nyxd
+
+mkdir -p /etc/systemd/system/multi-user.target.wants
+ln -sf /lib/systemd/system/nyxd.service \
+    /etc/systemd/system/multi-user.target.wants/nyxd.service
+rm -rf /usr/local/src/nyxd /root/.cargo
+DEBIAN_FRONTEND=noninteractive apt-get purge -y cargo rustc build-essential
+apt-get autoremove -y --purge
+apt-get clean

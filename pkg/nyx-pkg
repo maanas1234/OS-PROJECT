@@ -1,0 +1,81 @@
+#!/usr/bin/env python3
+"""Small, validated command line front end for apt."""
+
+import argparse
+import json
+import os
+import re
+import shutil
+import subprocess
+import sys
+
+
+PACKAGE_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9+.-]*$")
+
+
+def parse_args():
+    parser = argparse.ArgumentParser(description="Install, remove, or search Ubuntu packages")
+    parser.add_argument("--request", metavar="FILE", help="read a pkg-request JSON object ('-' reads stdin)")
+    parser.add_argument("action", nargs="?", choices=("install", "remove", "search"))
+    parser.add_argument("packages", nargs="*")
+    args = parser.parse_args()
+    if args.request and (args.action or args.packages):
+        parser.error("--request cannot be combined with action or package arguments")
+    if not args.request and not args.action:
+        parser.error("provide an action and package name(s), or --request FILE")
+    if not args.request and not args.packages:
+        parser.error("provide at least one package name or search term")
+    return args
+
+
+def load_request(path):
+    try:
+        stream = sys.stdin if path == "-" else open(path, encoding="utf-8")
+        with stream:
+            request = json.load(stream)
+    except (OSError, json.JSONDecodeError) as exc:
+        raise ValueError(f"cannot read package request: {exc}") from exc
+    if not isinstance(request, dict) or set(request) != {"action", "packages"}:
+        raise ValueError("request must contain exactly 'action' and 'packages'")
+    action, packages = request["action"], request["packages"]
+    if action not in ("install", "remove", "search"):
+        raise ValueError("action must be install, remove, or search")
+    if not isinstance(packages, list) or not packages:
+        raise ValueError("packages must be a non-empty array of strings")
+    return action, packages
+
+
+def main():
+    args = parse_args()
+    try:
+        action, packages = load_request(args.request) if args.request else (args.action, args.packages)
+        if not all(isinstance(name, str) and PACKAGE_RE.fullmatch(name) for name in packages):
+            raise ValueError("package names/search terms may contain only letters, digits, '+', '.', and '-'")
+    except ValueError as exc:
+        print(f"nyx-pkg: {exc}", file=sys.stderr)
+        return 2
+
+    if action == "search":
+        command = ["apt-cache", "search", "--", *packages]
+    else:
+        apt_get = shutil.which("apt-get")
+        if not apt_get:
+            print("nyx-pkg: apt-get is not installed", file=sys.stderr)
+            return 127
+        command = [apt_get, "-y", action, "--", *packages]
+        if os.geteuid() != 0:
+            sudo = shutil.which("sudo")
+            if not sudo:
+                print("nyx-pkg: root privileges required (sudo not found)", file=sys.stderr)
+                return 1
+            command.insert(0, sudo)
+
+    try:
+        return subprocess.run(command, check=False).returncode
+    except FileNotFoundError as exc:
+        print(f"nyx-pkg: required command not found: {exc.filename}", file=sys.stderr)
+        return 127
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

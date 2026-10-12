@@ -1,0 +1,13 @@
+#!/bin/sh
+set -eu
+
+lb config noauto \
+    --mode ubuntu \
+    --distribution noble \
+    --architectures amd64 \
+    --archive-areas "main universe restricted multiverse" \
+    --binary-images iso-hybrid \
+    --debian-installer false \
+    --bootappend-live "boot=casper quiet" \
+    --iso-application "NyxOS" \
+    --iso-volume "NYXOS"
