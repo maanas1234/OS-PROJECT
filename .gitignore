@@ -8,6 +8,7 @@ build/
 chroot/
 binary/
 cache/
+image/.build-work/
 
 # rust
 target/

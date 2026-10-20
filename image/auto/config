@@ -5,13 +5,23 @@ lb config noauto \
     --mode ubuntu \
     --distribution noble \
     --architectures amd64 \
+    --linux-flavours generic \
     --archive-areas "main universe restricted multiverse" \
-    --mirror-bootstrap http://archive.ubuntu.com/ubuntu/ \
-    --mirror-chroot http://archive.ubuntu.com/ubuntu/ \
-    --mirror-chroot-security http://security.ubuntu.com/ubuntu/ \
-    --mirror-binary http://archive.ubuntu.com/ubuntu/ \
-    --mirror-binary-security http://security.ubuntu.com/ubuntu/ \
+    --mirror-bootstrap https://archive.ubuntu.com/ubuntu/ \
+    --mirror-chroot https://archive.ubuntu.com/ubuntu/ \
+    --mirror-chroot-security https://security.ubuntu.com/ubuntu/ \
+    --mirror-binary https://archive.ubuntu.com/ubuntu/ \
+    --mirror-binary-security https://security.ubuntu.com/ubuntu/ \
+    --parent-mirror-bootstrap https://archive.ubuntu.com/ubuntu/ \
+    --parent-mirror-chroot https://archive.ubuntu.com/ubuntu/ \
+    --parent-mirror-chroot-security https://security.ubuntu.com/ubuntu/ \
+    --parent-mirror-binary https://archive.ubuntu.com/ubuntu/ \
+    --parent-mirror-binary-security https://security.ubuntu.com/ubuntu/ \
     --keyring-packages ubuntu-keyring \
+    --cache true \
+    --cache-packages true \
+    --cache-indices false \
+    --cache-stages bootstrap \
     --binary-images iso-hybrid \
     --debian-installer none \
     --bootappend-live "boot=casper quiet" \
