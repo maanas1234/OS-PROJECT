@@ -1,8 +1,10 @@
-"""nyx CLI.  nyx "list big files"  |  nyx --dry-run "..."  |  nyx why -- <cmd>  |  nyx alerts"""
+"""nyx CLI.  nyx "list big files"  |  nyx --dry-run "..."  |  nyx why -- <cmd>  |  nyx alerts [--history]  |  nyx notify  |  nyx config"""
 import argparse
 import subprocess
 import sys
 
+from . import config
+from . import alerts
 from .alerts import AlertsError, format_event, stream_events
 from .safety import assess
 from .translate import TranslateError, translate
@@ -78,6 +80,21 @@ def run_alerts() -> int:
 
 def main(argv=None) -> int:
     argv = sys.argv[1:] if argv is None else argv
+    config.load()
+    if argv == ["notify"]:  # called from the shell prompt hook: print only unseen alerts, silently otherwise
+        for event in alerts.new_events():
+            print(format_event(event))
+        return 0
+    if argv == ["alerts", "--history"]:
+        for event in alerts.read_log():
+            print(format_event(event))
+        return 0
+    if argv == ["alerts", "--log"]:  # service mode (systemd): never returns
+        alerts.follow_to_log()
+        return 0
+    if argv == ["config"]:
+        print(config.describe())
+        return 0
     if argv and argv[0] == "why":
         cmd = [a for a in argv[1:] if a != "--"]
         if not cmd:

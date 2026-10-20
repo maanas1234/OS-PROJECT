@@ -1,0 +1,13 @@
+#!/bin/sh
+set -eu
+
+# Files arrive from includes.chroot without guaranteed modes.
+chmod 0755 /usr/local/bin/nyx /usr/local/bin/nyx-pkg
+chmod 0644 /etc/nyx/nyx.conf /lib/systemd/system/nyx-alertlog.service
+
+mkdir -p /etc/systemd/system/multi-user.target.wants
+ln -sf /lib/systemd/system/nyx-alertlog.service \
+    /etc/systemd/system/multi-user.target.wants/nyx-alertlog.service
+
+# Fail the image build now, not at first boot, if the CLI cannot start.
+PYTHONPATH=/usr/local/lib/nyx python3 -m nyx config >/dev/null

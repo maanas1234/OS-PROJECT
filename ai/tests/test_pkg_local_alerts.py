@@ -175,3 +175,76 @@ def test_local_key_sent_as_bearer(monkeypatch):
     monkeypatch.setattr(tr, "_post", lambda url, headers, body, timeout, who: seen.update(h=headers) or {"choices": [{"message": {"content": "{}"}}]})
     tr.call_local("x", "http://h/v1", "auto", api_key="k")
     assert seen["h"] == {"authorization": "Bearer k"}
+
+
+# ---- config file ----
+
+from nyx import config
+
+
+def test_config_parse_ignores_unknown_and_comments():
+    text = '# c\nANTHROPIC_API_KEY="sk-abc"\nEVIL=1\nNYX_BACKEND = local\n\nbad line\nNYX_MODEL=\n'
+    assert config.parse(text) == {"ANTHROPIC_API_KEY": "sk-abc", "NYX_BACKEND": "local"}
+
+
+def test_config_env_wins_and_later_file_wins(tmp_path):
+    a, b = tmp_path / "a.conf", tmp_path / "b.conf"
+    a.write_text("NYX_BACKEND=cloud\nNYX_MODEL=m1\n")
+    b.write_text("NYX_MODEL=m2\nNYX_LOCAL_URL=http://x/v1\n")
+    env = {"NYX_LOCAL_URL": "http://from-env/v1"}
+    config.load([str(a), str(b), str(tmp_path / "missing.conf")], env)
+    assert env == {"NYX_BACKEND": "cloud", "NYX_MODEL": "m2", "NYX_LOCAL_URL": "http://from-env/v1"}
+
+
+def test_describe_masks_secrets():
+    out = config.describe({"ANTHROPIC_API_KEY": "sk-ant-secretvalue", "NYX_BACKEND": "auto"})
+    assert "secretvalue" not in out and "sk-a...ue" in out and "cloud, then local" in out
+    assert "local only" in config.describe({})
+
+
+# ---- proactive alert log + notify ----
+
+from nyx import alerts as alerts_mod
+
+
+def _write_log(path, n):
+    with open(path, "w") as f:
+        for i in range(n):
+            f.write(json.dumps({**EVENT, "message": f"m{i}"}) + "\n")
+
+
+def test_new_events_only_shows_unseen(tmp_path):
+    log, off = str(tmp_path / "a.jsonl"), str(tmp_path / "c" / "off")
+    _write_log(log, 2)
+    assert [e["message"] for e in alerts_mod.new_events(log, off)] == ["m0", "m1"]
+    assert alerts_mod.new_events(log, off) == []
+    _write_log(log, 3)
+    assert [e["message"] for e in alerts_mod.new_events(log, off)] == ["m2"]
+
+
+def test_new_events_handles_reset_log_and_missing_file(tmp_path):
+    log, off = str(tmp_path / "a.jsonl"), str(tmp_path / "off")
+    _write_log(log, 5)
+    alerts_mod.new_events(log, off)
+    _write_log(log, 1)  # rebooted: log shorter than offset
+    assert len(alerts_mod.new_events(log, off)) == 1
+    assert alerts_mod.new_events(str(tmp_path / "nope"), off) == []
+
+
+@pytest.mark.skipif(not hasattr(socket, "AF_UNIX"), reason="no AF_UNIX")
+def test_follow_to_log_reconnects_and_appends(tmp_path):
+    sock, log = str(tmp_path / "nyxd.sock"), str(tmp_path / "run" / "alerts.jsonl")
+    srv = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+    srv.bind(sock)
+    srv.listen(2)
+
+    def serve():
+        for n in range(2):  # daemon "restarts" once
+            conn, _ = srv.accept()
+            conn.sendall(json.dumps({**EVENT, "message": f"boot{n}"}).encode() + b"\n")
+            conn.close()
+
+    threading.Thread(target=serve, daemon=True).start()
+    alerts_mod.follow_to_log(sock, log, retry_seconds=0, sleep=lambda s: None, max_rounds=2)
+    assert [e["message"] for e in alerts_mod.read_log(log)] == ["boot0", "boot1"]
+    srv.close()
