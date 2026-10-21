@@ -28,3 +28,14 @@ Windows checkouts rewrote `pkg/nyx-pkg` to CRLF and broke its shebang (`python3\
 
 ## 2026-10-21 Maanas: config file for settings
 `/etc/nyx/nyx.conf` and `~/.config/nyx/nyx.conf` (KEY=value). Real environment variables win. Only known keys are read. `nyx config` shows the effective settings with secrets masked.
+
+## 2026-10-21 Maanas: three boot bugs found by actually booting the ISO
+Booting in QEMU (`tests/boot_smoke.py`) found that the ISO could not boot or log in as built:
+1. Casper looks for `/casper/filesystem.squashfs`; live-build wrote `/live/`. Fixed with `live-media-path=live` in `--bootappend-live`.
+2. live-build's default live user is `user`/`live`, hostname `debian`; our autologin files say `ubuntu`. Fixed with `username=ubuntu hostname=nyxos`.
+3. A serial console runs `serial-getty@ttyS0`, not `getty@ttyS0`. Added a serial-getty autologin drop-in (the old file is harmless and left alone).
+Also added: DHCP via systemd-networkd (+`systemd-resolved` package, resolv.conf tmpfiles rule), because the image had no network config at all; `nyx-pkg` runs `apt-get update` when apt lists are missing (live images ship none).
+Ubuntu's own `live-build` package is the ancient `3.0~a57`; `--debian-installer none` needs upstream live-build (Utpal's Arch host has it). `tests/builder.Dockerfile` installs the upstream one.
+
+## 2026-10-21 Maanas: apt commands from small models are rerouted
+The bundled 1.5B model answers "install htop" with `apt install htop`. `nyx` rewrites plain `apt/apt-get install|remove|purge <names>` into `nyx-pkg ...`; anything fancier (`&&`, `$()`, `update`) is left alone and still goes through the safety gate.

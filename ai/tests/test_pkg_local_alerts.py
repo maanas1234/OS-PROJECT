@@ -248,3 +248,25 @@ def test_follow_to_log_reconnects_and_appends(tmp_path):
     alerts_mod.follow_to_log(sock, log, retry_seconds=0, sleep=lambda s: None, max_rounds=2)
     assert [e["message"] for e in alerts_mod.read_log(log)] == ["boot0", "boot1"]
     srv.close()
+
+
+# ---- apt commands from small models are routed through nyx-pkg ----
+
+@pytest.mark.parametrize(
+    "cmd,expected",
+    [
+        ("apt install htop", "nyx-pkg install htop"),
+        ("sudo apt-get -y install htop curl", "nyx-pkg install htop curl"),
+        ("sudo apt remove nginx", "nyx-pkg remove nginx"),
+        ("apt purge -y nginx", "nyx-pkg remove nginx"),
+    ],
+)
+def test_apt_commands_become_nyx_pkg(cmd, expected):
+    p = from_model_reply("x", json.dumps({"command": cmd, "explanation": "e", "risk": "low"}))
+    assert p.command == expected and p.risk == "med"
+
+
+@pytest.mark.parametrize("cmd", ["apt update", "apt install htop && rm -rf x", "apt install $(whoami)", "apt list --installed"])
+def test_other_apt_commands_untouched(cmd):
+    p = from_model_reply("x", json.dumps({"command": cmd, "explanation": "e", "risk": "low"}))
+    assert p.command == cmd

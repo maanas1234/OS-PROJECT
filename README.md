@@ -26,3 +26,24 @@ Team: **Maanas** (AI brain) and **Utpal** (OS plumbing).
 - Edit only your own folders. Cross-folder need: note it in the PR.
 - Contract changes: separate PR, both approve before code depends on it.
 - No secrets in git. API keys go in `.env` (gitignored).
+
+## Status (2026-10-21)
+
+The ISO builds and boots: `tests/boot_smoke.py` passes 9/9 in QEMU (boot, Nushell, `nyx`, `nyxd`, DHCP, alert pipeline,
+real-model English to command, package intent to `nyx-pkg`).
+
+**Try it:**
+```sh
+sudo ./image/build.sh                    # or NYX_BUNDLE_MODEL=1 for the offline model; see tests/README.md for Docker
+python3 tests/boot_smoke.py image/build/nyxos-amd64.iso
+```
+On the booted system (autologin `ubuntu`, Nushell):
+```
+ask list the biggest files        # or: nyx "list the biggest files"
+ask install htop                  # becomes: nyx-pkg install htop (confirm first)
+nyx alerts                        # live nyxd errors; new ones also show at your next prompt
+sudo vi /etc/nyx/nyx.conf         # put ANTHROPIC_API_KEY here; without it nyx uses the local model if present
+```
+
+**Not verified:** real hardware (M7), UEFI/isolinux bootloader screens, live Anthropic API call, the offline-model ISO
+booted end to end (model and server verified separately in a container).

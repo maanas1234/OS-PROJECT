@@ -60,6 +60,20 @@ def pkg_command(request) -> str:
     return " ".join(["nyx-pkg", action, *packages])
 
 
+# `apt install x`, `sudo apt-get -y remove y`: small models skip the pkg_request format. Route them through nyx-pkg.
+APT_RE = re.compile(r"^(?:sudo\s+)?apt(?:-get)?\s+(?:-\S+\s+)*(install|remove|purge)\s+((?:-\S+\s+)*[\w+.\s-]+)$")
+
+
+def normalize_apt(command: str) -> str:
+    m = APT_RE.match(command.strip())
+    if not m:
+        return command
+    names = [n for n in m.group(2).split() if not n.startswith("-")]
+    if not names or not all(PACKAGE_RE.fullmatch(n) for n in names):
+        return command
+    return pkg_command({"action": "remove" if m.group(1) == "purge" else m.group(1), "packages": names})
+
+
 def from_model_reply(intent: str, text: str) -> Proposal:
     """Parse reply, then run the safety gate. Gate overrides model on risk and confirm."""
     data = extract_json(text)
@@ -68,6 +82,7 @@ def from_model_reply(intent: str, text: str) -> Proposal:
     command = data.get("command")
     if not isinstance(command, str) or not command.strip():
         raise ProposalError("model reply has no command")
+    command = normalize_apt(command)
     claimed = data.get("risk") if data.get("risk") in ("low", "med", "high") else "low"
     verdict = assess(command, claimed)
     explanation = str(data.get("explanation", "")).strip()

@@ -67,9 +67,9 @@ Fresh repo `OS-PROJECT`, not a fork. We only add our layer on Ubuntu (build conf
 | # | Status |
 |---|---|
 | M0 | done |
-| M1 | image config by Utpal; boot check via `tests/boot_smoke.py` (see README for last result) |
-| M2, M3 | done, tested; real model tested through an OpenAI-compatible proxy |
-| M4 | done: `nyx "install htop"` becomes `nyx-pkg install htop`, verified with a real apt install in Ubuntu 24.04 |
-| M5 | done: `nyxd` to `nyx alerts`, plus `nyx-alertlog` + prompt hook for proactive display |
-| M6 | done in code; offline model in the ISO is opt-in (`NYX_BUNDLE_MODEL=1`) |
-| M7 | real hardware: not tested |
+| M1 | done in QEMU: ISO boots to a Nushell prompt (`tests/boot_smoke.py`). Needed 3 fixes found by booting it (see DECISIONS). Real hardware and bootloader screens untested |
+| M2, M3 | done: tested with fake and real models; also passes inside the booted ISO (M2) |
+| M4 | done: `nyx "install htop"` becomes `nyx-pkg install htop`; real apt install verified in Ubuntu 24.04; package intent verified in the booted ISO |
+| M5 | done: injected `logger` error reaches `nyx alerts` on the booted ISO; new alerts also show at the next prompt |
+| M6 | done: local fallback tested; offline model bundle (`NYX_BUNDLE_MODEL=1`) downloads, verifies and runs in a container. ISO with the model not booted |
+| M7 | not tested (no hardware) |

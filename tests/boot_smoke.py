@@ -107,7 +107,7 @@ def main(iso):
         kernel, initrd, boot_args = extract_kernel(iso, work)
         accel = "kvm:tcg" if os.path.exists("/dev/kvm") else "tcg"
         cmd = [
-            "qemu-system-x86_64", "-machine", f"accel={accel}", "-m", "3072", "-smp", "4",
+            "qemu-system-x86_64", "-machine", f"accel={accel}", "-m", "3072", "-smp", "2",
             "-nographic", "-no-reboot", "-cdrom", iso, "-kernel", kernel, "-initrd", initrd,
             "-append", " ".join(boot_args + os.environ.get("NYX_TEST_EXTRA_ARGS", "").split()
                                  + ["console=ttyS0,115200", "noprompt", "systemd.show_status=0"]),
@@ -147,6 +147,8 @@ def main(iso):
             check("nyx runs (python module, config)", code == 0, out)
             code, out = run('test "$(systemctl is-active nyxd nyx-alertlog | grep -cx active)" = 2')
             check("nyxd and nyx-alertlog services active", code == 0, out)
+            code, out = run('ip -4 addr show | grep -q "inet 10.0.2."', 60)
+            check("network comes up by DHCP", code == 0, out)
             code, out = run("test -f /usr/local/share/nushell/vendor/autoload/nyx.nu && test -f /etc/nyx/nyx.conf")
             check("nushell glue and nyx.conf installed", code == 0, out)
             code, out = run(

@@ -12,5 +12,8 @@ ln -sf /lib/systemd/system/nyx-alertlog.service \
 chmod 0644 /lib/systemd/system/nyx-llm.service
 ln -sf /lib/systemd/system/nyx-llm.service     /etc/systemd/system/multi-user.target.wants/nyx-llm.service
 
+chmod 0644 /etc/systemd/network/20-wired.network /etc/tmpfiles.d/nyx-resolv.conf
+systemctl enable systemd-networkd.service systemd-resolved.service
+
 # Fail the image build now, not at first boot, if the CLI cannot start.
 PYTHONPATH=/usr/local/lib/nyx python3 -m nyx config >/dev/null
