@@ -1,0 +1,9 @@
+# Get an address on any wired interface (NyxOS ships no netplan/NetworkManager).
+[Match]
+Name=en* eth*
+
+[Network]
+DHCP=ipv4
+
+[DHCPv4]
+UseDNS=yes

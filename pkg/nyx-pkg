@@ -45,6 +45,30 @@ def load_request(path):
     return action, packages
 
 
+def package_lists_missing():
+    try:
+        return not any("Packages" in name for name in os.listdir("/var/lib/apt/lists"))
+    except OSError:
+        return True
+
+
+def refresh_package_lists():
+    """The live image ships without apt lists; fetch them once so install and search can find packages."""
+    apt_get = shutil.which("apt-get")
+    if not apt_get:
+        print("nyx-pkg: apt-get is not installed", file=sys.stderr)
+        return 127
+    command = [apt_get, "update"]
+    if os.geteuid() != 0:
+        sudo = shutil.which("sudo")
+        if not sudo:
+            print("nyx-pkg: root privileges required (sudo not found)", file=sys.stderr)
+            return 1
+        command.insert(0, sudo)
+    print("nyx-pkg: package lists are missing, running apt-get update first", file=sys.stderr)
+    return subprocess.run(command, check=False).returncode
+
+
 def main():
     args = parse_args()
     try:
@@ -54,6 +78,11 @@ def main():
     except ValueError as exc:
         print(f"nyx-pkg: {exc}", file=sys.stderr)
         return 2
+
+    if action in ("install", "search") and package_lists_missing():
+        status = refresh_package_lists()
+        if status:
+            return status
 
     if action == "search":
         command = ["apt-cache", "search", "--", *packages]

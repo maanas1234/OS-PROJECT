@@ -5,3 +5,6 @@ sudo
 ca-certificates
 curl
 dosfstools
+libgomp1
+systemd-resolved
+iproute2

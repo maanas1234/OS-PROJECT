@@ -1,0 +1,19 @@
+[Unit]
+Description=NyxOS offline model (llama.cpp server on 127.0.0.1:8080)
+# Only present on images built with NYX_BUNDLE_MODEL=1.
+ConditionPathExists=/usr/local/share/nyx/model.gguf
+After=network.target
+
+[Service]
+Type=simple
+Environment=LD_LIBRARY_PATH=/usr/local/lib/llama
+ExecStart=/usr/local/lib/llama/llama-server -m /usr/local/share/nyx/model.gguf --host 127.0.0.1 --port 8080 -c 4096
+Restart=on-failure
+RestartSec=5s
+DynamicUser=yes
+ProtectSystem=strict
+ProtectHome=yes
+NoNewPrivileges=yes
+
+[Install]
+WantedBy=multi-user.target

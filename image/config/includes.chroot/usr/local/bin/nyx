@@ -1,0 +1,3 @@
+#!/bin/sh
+# NyxOS AI shell helper. Pure Python (stdlib), installed by image/build.sh.
+PYTHONPATH=/usr/local/lib/nyx${PYTHONPATH:+:$PYTHONPATH} exec python3 -m nyx "$@"

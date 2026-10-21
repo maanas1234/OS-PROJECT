@@ -1,0 +1,19 @@
+[Unit]
+Description=NyxOS alert log (nyxd events to /run/nyx/alerts.jsonl)
+After=nyxd.service
+Wants=nyxd.service
+
+[Service]
+Type=simple
+Environment=PYTHONPATH=/usr/local/lib/nyx
+ExecStart=/usr/bin/python3 -m nyx alerts --log
+Restart=always
+RestartSec=3s
+User=root
+Group=adm
+RuntimeDirectory=nyx
+RuntimeDirectoryMode=0755
+UMask=0022
+
+[Install]
+WantedBy=multi-user.target

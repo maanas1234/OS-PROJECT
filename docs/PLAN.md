@@ -61,3 +61,15 @@ Fresh repo `OS-PROJECT`, not a fork. We only add our layer on Ubuntu (build conf
 - No secrets in git. `.env` gitignored.
 - Keep it simple. No abstraction until second use.
 - Destructive disk ops only in VM.
+
+## 7. Status (2026-10-21)
+
+| # | Status |
+|---|---|
+| M0 | done |
+| M1 | done in QEMU: ISO boots to a Nushell prompt (`tests/boot_smoke.py`). Needed 3 fixes found by booting it (see DECISIONS). Real hardware and bootloader screens untested |
+| M2, M3 | done: tested with fake and real models; also passes inside the booted ISO (M2) |
+| M4 | done: `nyx "install htop"` becomes `nyx-pkg install htop`; real apt install verified in Ubuntu 24.04; package intent verified in the booted ISO |
+| M5 | done: injected `logger` error reaches `nyx alerts` on the booted ISO; new alerts also show at the next prompt |
+| M6 | done: local fallback tested; offline model bundle (`NYX_BUNDLE_MODEL=1`) downloads, verifies and runs in a container. ISO with the model not booted |
+| M7 | not tested (no hardware) |
