@@ -76,6 +76,10 @@ mkdir -p "$WORK_DIR/config/includes.chroot/usr/local/share/nushell/vendor/autolo
 cp -a "$REPO_DIR/ai/nyx" "$WORK_DIR/config/includes.chroot/usr/local/lib/nyx/nyx"
 find "$WORK_DIR/config/includes.chroot/usr/local/lib/nyx" -name __pycache__ -type d -prune -exec rm -rf {} +
 cp "$REPO_DIR/shell/nyx.nu" "$WORK_DIR/config/includes.chroot/usr/local/share/nushell/vendor/autoload/nyx.nu"
+# Optional offline model: NYX_BUNDLE_MODEL=1 sudo ./image/build.sh
+if [ "${NYX_BUNDLE_MODEL:-0}" = "1" ]; then
+    sh "$IMAGE_DIR/bundle-model.sh" "$WORK_DIR/config" "$DOWNLOAD_DIR"
+fi
 cp "$REPO_DIR/pkg/nyx-pkg" "$WORK_DIR/config/includes.chroot/usr/local/bin/nyx-pkg"
 cp "$REPO_DIR/daemon/Cargo.toml" "$WORK_DIR/config/includes.chroot/usr/local/src/nyxd/"
 cp -a "$REPO_DIR/daemon/src" "$WORK_DIR/config/includes.chroot/usr/local/src/nyxd/"

@@ -61,3 +61,15 @@ Fresh repo `OS-PROJECT`, not a fork. We only add our layer on Ubuntu (build conf
 - No secrets in git. `.env` gitignored.
 - Keep it simple. No abstraction until second use.
 - Destructive disk ops only in VM.
+
+## 7. Status (2026-10-21)
+
+| # | Status |
+|---|---|
+| M0 | done |
+| M1 | image config by Utpal; boot check via `tests/boot_smoke.py` (see README for last result) |
+| M2, M3 | done, tested; real model tested through an OpenAI-compatible proxy |
+| M4 | done: `nyx "install htop"` becomes `nyx-pkg install htop`, verified with a real apt install in Ubuntu 24.04 |
+| M5 | done: `nyxd` to `nyx alerts`, plus `nyx-alertlog` + prompt hook for proactive display |
+| M6 | done in code; offline model in the ISO is opt-in (`NYX_BUNDLE_MODEL=1`) |
+| M7 | real hardware: not tested |

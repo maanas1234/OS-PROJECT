@@ -24,6 +24,6 @@ lb config noauto \
     --cache-stages bootstrap \
     --binary-images iso-hybrid \
     --debian-installer none \
-    --bootappend-live "boot=casper quiet" \
+    --bootappend-live "boot=casper live-media-path=live username=ubuntu hostname=nyxos quiet" \
     --iso-application "NyxOS" \
     --iso-volume "NYXOS"

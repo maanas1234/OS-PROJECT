@@ -70,3 +70,23 @@ Start your Claude Code session inside your clone. Tell it:
 ## Questions?
 
 Ask Maanas. Better to ask before coding than to rewrite later.
+
+---
+
+## Update 2026-10-21: what Maanas added inside your folders
+
+Your files are unchanged except `image/build.sh` (one block that stages `nyx` + Nushell glue, and an optional model block) and `image/config/package-lists/nyxos.list.chroot` (+`libgomp1`, needed by the optional offline model). Everything else is new files:
+
+| File | Purpose |
+|---|---|
+| `image/config/includes.chroot/usr/local/bin/nyx` | 2-line wrapper for the Python CLI |
+| `image/config/includes.chroot/etc/nyx/nyx.conf` | commented settings template (API key, local model) |
+| `image/config/includes.chroot/lib/systemd/system/nyx-alertlog.service` | logs `nyxd` events to `/run/nyx/alerts.jsonl` |
+| `image/config/includes.chroot/lib/systemd/system/nyx-llm.service` | offline model server; does nothing unless the model is bundled |
+| `image/config/hooks/normal/110-nyx.hook.chroot` | sets modes, enables the two services, checks `nyx` starts |
+| `image/bundle-model.sh` | optional: `NYX_BUNDLE_MODEL=1 sudo ./image/build.sh` bakes in llama.cpp + a 1.5B model |
+| `shell/nyx.nu` | Nushell glue (copied by build.sh to the vendor autoload dir) |
+
+Please review these like any PR. Your `nyxd.service` is untouched; `nyx-alertlog` runs as `root:adm` so it can read your socket.
+
+**Testing the ISO:** `python3 tests/boot_smoke.py image/build/nyxos-amd64.iso` (needs `qemu-system-x86_64` and `xorriso`).

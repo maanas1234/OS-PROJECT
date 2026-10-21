@@ -7,6 +7,9 @@ Needs: qemu-system-x86_64, xorriso. Uses KVM if /dev/kvm exists, otherwise slow 
 (allow 10+ minutes). Boots with -kernel/-initrd taken from the ISO so the serial console is
 guaranteed; the ISO's own bootloader is NOT exercised here.
 
+Set NYX_TEST_USER / NYX_TEST_PASSWORD if the serial console asks for a login.
+Set NYX_TEST_EXTRA_ARGS to add kernel arguments (e.g. to try a boot fix without rebuilding).
+
 Optional real-model check: set NYX_TEST_LLM_URL (as seen from the guest, e.g. http://10.0.2.2:31415/v1,
 10.0.2.2 is the QEMU host) and NYX_TEST_LLM_KEY / NYX_TEST_LLM_MODEL. The key is passed to the guest
 over the serial console only for this run.
@@ -64,23 +67,33 @@ class Guest:
             return self.buf[-n:]
 
 
+def default_boot_entry(iso, workdir):
+    """Read the ISO's own default GRUB entry: (kernel path, initrd path, kernel args)."""
+    cfg = os.path.join(workdir, "grub.cfg")
+    subprocess.run(["xorriso", "-osirrox", "on", "-indev", iso, "-extract", "/boot/grub/grub.cfg", cfg],
+                   check=True, capture_output=True)
+    text = open(cfg, encoding="utf-8", errors="replace").read()
+    linux = re.search(r"^\s*linux\s+(\S+)\s*(.*)$", text, re.M)
+    initrd = re.search(r"^\s*initrd\s+(\S+)", text, re.M)
+    if not linux or not initrd:
+        raise SystemExit("no linux/initrd line in the ISO's grub.cfg")
+    args = [a for a in linux.group(2).split() if not a.startswith("findiso=") and a not in ("quiet", "splash")]
+    return linux.group(1), initrd.group(1), args
+
+
 def extract_kernel(iso, workdir):
-    listing = subprocess.run(
-        ["xorriso", "-indev", iso, "-find", "/casper", "-maxdepth", "1", "-type", "f"],
-        capture_output=True, text=True, check=True,
-    ).stdout
-    files = re.findall(r"'(/casper/[^']+)'", listing)
-    kernel = sorted(f for f in files if os.path.basename(f).startswith("vmlinuz"))
-    initrd = sorted(f for f in files if os.path.basename(f).startswith("initrd"))
-    if not kernel or not initrd:
-        raise SystemExit(f"no kernel/initrd under /casper in ISO (found: {files})")
+    kernel_path, initrd_path, args = default_boot_entry(iso, workdir)
     out = []
-    for src, name in ((kernel[-1], "vmlinuz"), (initrd[-1], "initrd")):
+    for src, name in ((kernel_path, "vmlinuz"), (initrd_path, "initrd")):
         dst = os.path.join(workdir, name)
         subprocess.run(["xorriso", "-osirrox", "on", "-indev", iso, "-extract", src, dst],
                        check=True, capture_output=True)
         out.append(dst)
-    return out
+    return out[0], out[1], args
+
+
+USER = os.environ.get("NYX_TEST_USER", "ubuntu")
+PASSWORD = os.environ.get("NYX_TEST_PASSWORD", "")
 
 
 def main(iso):
@@ -91,30 +104,30 @@ def main(iso):
         print(f"{'PASS' if ok else 'FAIL'}  {name}" + (f"  [{detail}]" if detail and not ok else ""), flush=True)
 
     with tempfile.TemporaryDirectory() as work:
-        kernel, initrd = extract_kernel(iso, work)
+        kernel, initrd, boot_args = extract_kernel(iso, work)
         accel = "kvm:tcg" if os.path.exists("/dev/kvm") else "tcg"
         cmd = [
-            "qemu-system-x86_64", "-machine", f"accel={accel}", "-m", "3072", "-smp", "2",
+            "qemu-system-x86_64", "-machine", f"accel={accel}", "-m", "3072", "-smp", "4",
             "-nographic", "-no-reboot", "-cdrom", iso, "-kernel", kernel, "-initrd", initrd,
-            "-append", "boot=casper console=ttyS0,115200 noprompt systemd.show_status=0",
+            "-append", " ".join(boot_args + os.environ.get("NYX_TEST_EXTRA_ARGS", "").split()
+                                 + ["console=ttyS0,115200", "noprompt", "systemd.show_status=0"]),
             "-nic", "user",
         ]
         print(f"booting with accel={accel} ...", flush=True)
         g = Guest(cmd)
         try:
             booted = False
-            deadline = time.time() + 900
+            deadline = time.time() + 2400
             while time.time() < deadline and not booted:
+                if g.expect(r"Kernel panic|Attempted to kill init", 0.1):
+                    break
                 g.send("\n")
-                m = g.expect(r"(login:|Password:|\$ |> |# )", 20)
-                if not m:
-                    continue
-                if "login:" in m.group(0):
-                    g.send("ubuntu\n")
-                elif "Password:" in m.group(0):
-                    g.send("\n")
-                else:
-                    booted = True
+                m = g.expect(r"(login:|Password:)", 5)
+                if m:
+                    g.send("ubuntu\n" if "login:" in m.group(0) else "\n")
+                # A real shell answers arithmetic; the echoed command and kernel logs cannot fake "42".
+                g.send("sh -c 'echo NYX-BOOT-$((6*7))'\n")
+                booted = bool(g.expect(r"NYX-BOOT-42", 15))
             check("boots to a shell on serial console", booted, g.tail())
             if not booted:
                 return finish(results)
@@ -159,7 +172,7 @@ def main(iso):
 def finish(results):
     failed = [n for n, ok in results if not ok]
     print(f"\n{len(results) - len(failed)}/{len(results)} passed")
-    return 1 if failed else 0
+    return 1 if failed or not results else 0
 
 
 if __name__ == "__main__":

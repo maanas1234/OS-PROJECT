@@ -5,3 +5,4 @@ sudo
 ca-certificates
 curl
 dosfstools
+libgomp1
